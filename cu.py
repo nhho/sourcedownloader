@@ -32,6 +32,7 @@ for folder, urls, auth in FOLDER_URL:
     for at, url in enumerate(urls):
         total = 0
         pure_url = url[:url.rfind('/') + 1]
+        base_url = url[:url.replace('//', '__').find('/') + 1]
         homepage_name = 'homepage'
         if len(urls) > 1:
             homepage_name += str(at + 1)
@@ -51,7 +52,10 @@ for folder, urls, auth in FOLDER_URL:
                             suffix = suffix[:suffix.find('?')]
                         suffix_set.add(suffix)
                         if not link.startswith('http'):
-                            link = pure_url + link
+                            if link.startswith('/'):
+                                link = base_url + link
+                            else:
+                                link = pure_url + link
                         file_name = link[link.rfind('/') + 1:]
                         if link in BLACKLIST:
                             continue
