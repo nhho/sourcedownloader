@@ -32,7 +32,7 @@ for folder, urls, auth in FOLDER_URL:
     for at, url in enumerate(urls):
         total = 0
         pure_url = url[:url.rfind('/') + 1]
-        base_url = url[:url.replace('//', '__').find('/') + 1]
+        base_url = url[:url.replace('//', '__').find('/')]
         homepage_name = 'homepage'
         if len(urls) > 1:
             homepage_name += str(at + 1)
