@@ -12,6 +12,10 @@ SUFFIX = set(['doc', 'docx', 'ppt', 'pptx', 'pdf', 'zip', 'rar', 'gz', 'm', 'txt
 SUFFIX_IGNORE = set(['com', 'hk', 'htm', 'html', 'asp', 'php'])
 WHITELIST = set([])
 BLACKLIST = set([])
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                  '(KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'
+}
 
 suffix_set = set()
 for folder, urls, auth in FOLDER_URL:
@@ -36,7 +40,7 @@ for folder, urls, auth in FOLDER_URL:
         homepage_name = 'homepage'
         if len(urls) > 1:
             homepage_name += str(at + 1)
-        with requests.get(url, auth=auth, stream=True) as req:
+        with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
             req.raise_for_status()
             with open(folder + '/' + homepage_name + '.html', 'wb') as f:
                 shutil.copyfileobj(req.raw, f)
@@ -68,7 +72,7 @@ for folder, urls, auth in FOLDER_URL:
                                 continue
                             file_name_set.add(file_name)
                             # print ' ' + file_name
-                            with requests.get(link, auth=auth, stream=True) as r:
+                            with requests.get(link, auth=auth, stream=True, headers=HEADERS) as r:
                                 r.raise_for_status()
                                 with open(folder + '/' + file_name, 'wb') as f:
                                     shutil.copyfileobj(r.raw, f)
