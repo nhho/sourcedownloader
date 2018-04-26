@@ -30,7 +30,7 @@ for folder, urls, auth in FOLDER_URL:
     link_set = set()
     file_name_set = set(['pw.txt'])
     for at, url in enumerate(urls):
-        total = 0
+        total = 1
         pure_url = url[:url.rfind('/') + 1]
         base_url = url[:url.replace('//', '__').find('/')]
         homepage_name = 'homepage'
