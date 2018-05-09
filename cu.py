@@ -42,6 +42,7 @@ for folder, urls, auth in FOLDER_URL:
             homepage_name += str(at + 1)
         with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
             req.raise_for_status()
+            req.raw.decode_content = True
             with open(folder + '/' + homepage_name + '.html', 'wb') as f:
                 shutil.copyfileobj(req.raw, f)
         req = requests.get(url, auth=auth)
@@ -74,6 +75,7 @@ for folder, urls, auth in FOLDER_URL:
                             # print ' ' + file_name
                             with requests.get(link, auth=auth, stream=True, headers=HEADERS) as r:
                                 r.raise_for_status()
+                                r.raw.decode_content = True
                                 with open(folder + '/' + file_name, 'wb') as f:
                                     shutil.copyfileobj(r.raw, f)
                             total += 1
