@@ -46,7 +46,7 @@ for folder, urls, auth in FOLDER_URL:
             req.raw.decode_content = True
             with open(folder + '/' + homepage_name + '.html', 'wb') as f:
                 shutil.copyfileobj(req.raw, f)
-        req = requests.get(url, auth=auth)
+        req = requests.get(url, auth=auth, headers=HEADERS)
         req.raise_for_status()
         for tag in BeautifulSoup(req.text, 'html.parser', parse_only=SoupStrainer('a')):
             if tag.has_attr('href'):
