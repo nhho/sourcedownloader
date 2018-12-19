@@ -11,7 +11,7 @@ FOLDER_URL = [  # (folder, [links], (id, pw))
      None)
 ]
 SUFFIX = set(['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'pdf', 'zip', 'rar',
-              'gz', 'm', 'java', 'scala', 'txt', 'sql'])
+              'gz', 'm', 'java', 'scala', 'txt', 'sql', 'asm'])
 SUFFIX_IGNORE = set(['com', 'hk', 'htm', 'html', 'asp', 'php'])
 WHITELIST = set([])
 BLACKLIST = set([])
