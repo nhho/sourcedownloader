@@ -56,6 +56,8 @@ for folder, urls, auth in FOLDER_URL:
                     if '/' not in suffix:
                         if '?' in suffix:
                             suffix = suffix[:suffix.find('?')]
+                        if '#' in suffix:
+                            suffix = suffix[:suffix.find('#')]
                         suffix_set.add(suffix)
                         if not link.startswith('http'):
                             if link.startswith('/'):
