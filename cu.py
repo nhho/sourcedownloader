@@ -38,9 +38,11 @@ for folder, urls, auth in FOLDER_URL:
         total = 1
         pure_url = url[:url.rfind('/') + 1]
         base_url = url[:url.replace('//', '__').find('/')]
+        link_set.add(url)
         homepage_name = 'homepage'
         if len(urls) > 1:
             homepage_name += str(at + 1)
+        file_name_set.add(homepage_name + '.html')
         with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
             req.raise_for_status()
             req.raw.decode_content = True
