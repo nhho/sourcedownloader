@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup, SoupStrainer
 
 
 FOLDER_URL = [  # (folder, [links], (id, pw))
-    ('CSCI3130/1718_sem1', ['https://www.cse.cuhk.edu.hk/~siuon/csci3130/'], None)
+    ('CSCI3130/1819_sem1', ['https://www.cse.cuhk.edu.hk/~siuon/csci3130/'], None)
 ]
 SUFFIX = set(['doc', 'docx', 'ppt', 'pptx', 'pdf', 'zip', 'rar', 'gz', 'm', 'txt'])
 SUFFIX_IGNORE = set(['com', 'hk', 'htm', 'html', 'asp', 'php'])
