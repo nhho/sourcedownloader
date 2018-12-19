@@ -68,9 +68,10 @@ for folder, urls, auth in FOLDER_URL:
                             if link in link_set:
                                 continue
                             link_set.add(link)
-                            if file_name in file_name_set:
+                            while file_name in file_name_set:
                                 print ' REPEATED', file_name, link
-                                continue
+                                dot = file_name.rfind('.')
+                                file_name = file_name[:dot] + '_' + file_name[dot:]
                             file_name_set.add(file_name)
                             # print ' ' + file_name
                             with requests.get(link, auth=auth, stream=True, headers=HEADERS) as r:
