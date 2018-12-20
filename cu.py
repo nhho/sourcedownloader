@@ -39,6 +39,8 @@ def readable_file_size(file_size, suffix='B'):
 
 def get_url_and_suffix(tag, base_url, pure_url):
   url = tag['href']
+  if url.startswith('mailto:'):
+    return None
   if '.' not in url:
     return None
   suffix = url[url.rfind('.') + 1:].lower()
