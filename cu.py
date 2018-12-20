@@ -50,7 +50,7 @@ def get_url_and_suffix(tag, base_url, pure_url):
 def get_file_name(url, file_name_set):
   file_name = url[url.rfind('/') + 1:]
   while file_name in file_name_set:
-    print ' REPEATED', file_name, url
+    print 'REPEATED', file_name, url
     dot = file_name.rfind('.')
     file_name = file_name[:dot] + '_' + file_name[dot:]
   return file_name
@@ -61,7 +61,7 @@ def prepare_folder(folder):
     pure_folder = folder[:folder.find('/')]
   else:
     pure_folder = folder
-  print '[%s]' % pure_folder
+  print '=== %s ===' % pure_folder
   if os.path.exists(pure_folder):
     shutil.rmtree(pure_folder)
   os.makedirs(folder)
@@ -115,8 +115,8 @@ def main():  # pylint: disable=too-many-locals
             download(folder + '/' + file_name, download_url, auth)
             total += 1
           elif suffix not in SUFFIX_IGNORE:
-            print ' UNEXPECTED SUFFIX', file_name, download_url
-      print ' total:', total
+            print 'UNEXPECTED SUFFIX', file_name, download_url
+      print '%d file(s) from %s' % (total, url)
 
 
 if __name__ == '__main__':
