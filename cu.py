@@ -20,12 +20,20 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                          'Chrome/65.0.3325.181 Safari/537.36'}
 
 
-def download(file_name, url, auth):
+def download(file_path, url, auth):
   with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
     req.raise_for_status()
     req.raw.decode_content = True
-    with open(file_name, 'wb') as local_file:
+    with open(file_path, 'wb') as local_file:
       shutil.copyfileobj(req.raw, local_file)
+
+
+def readable_file_size(file_size, suffix='B'):
+  for unit in ['', 'Ki', 'Mi']:
+    if abs(file_size) < 1024:
+      return "%.2f%s%s" % (file_size, unit, suffix)
+    file_size /= float(1024)
+  return "%.2f%s%s" % (file_size, 'Gi', suffix)
 
 
 def get_url_and_suffix(tag, base_url, pure_url):
@@ -80,6 +88,7 @@ def main():  # pylint: disable=too-many-locals
       save_pw(folder, auth)
     url_set = set()
     file_name_set = set(['pw.txt'])
+    total_file_size = 0
     for ind, url in enumerate(urls):
       total = 1
       pure_url = url[:url.rfind('/') + 1]
@@ -88,13 +97,15 @@ def main():  # pylint: disable=too-many-locals
       homepage_name = 'homepage'
       if len(urls) > 1:
         homepage_name += str(ind + 1)
-      file_name_set.add(homepage_name + '.html')
-      download(folder + '/' + homepage_name + '.html', url, auth)
+      homepage_name += '.html'
+      file_name_set.add(homepage_name)
+      file_path = folder + '/' + homepage_name
+      download(file_path, url, auth)
+      total_file_size += os.stat(file_path).st_size
       with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
         req.raise_for_status()
         req.raw.decode_content = True
-        with open(folder + '/' + homepage_name + '.html',
-                  'wb') as homepage_file:
+        with open(file_path, 'wb') as homepage_file:
           shutil.copyfileobj(req.raw, homepage_file)
       req = requests.get(url, auth=auth, headers=HEADERS)
       req.raise_for_status()
@@ -112,11 +123,14 @@ def main():  # pylint: disable=too-many-locals
             url_set.add(download_url)
             # print ' ' + file_name
             file_name_set.add(file_name)
-            download(folder + '/' + file_name, download_url, auth)
+            file_path = folder + '/' + file_name
+            download(file_path, download_url, auth)
+            total_file_size += os.stat(file_path).st_size
             total += 1
           elif suffix not in SUFFIX_IGNORE:
             print 'UNEXPECTED SUFFIX', file_name, download_url
       print '%d file(s) from %s' % (total, url)
+    print 'total %s' % readable_file_size(total_file_size)
 
 
 if __name__ == '__main__':
