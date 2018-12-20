@@ -1,3 +1,4 @@
+import filecmp
 import os
 import shutil
 
@@ -6,7 +7,7 @@ import requests
 
 
 FOLDER_URL = [  # (folder, [links], (id, pw))
-    ('CSCI3130/1819-sem1',
+    (['CSCI3130', '1819-sem1'],
      ['https://www.cse.cuhk.edu.hk/~siuon/csci3130/'],
      None)
 ]
@@ -64,15 +65,21 @@ def get_file_name(url, file_name_set):
   return file_name
 
 
-def prepare_folder(folder):
-  if '/' in folder:
-    pure_folder = folder[:folder.find('/')]
-  else:
-    pure_folder = folder
-  print '=== %s ===' % pure_folder
-  if os.path.exists(pure_folder):
-    shutil.rmtree(pure_folder)
-  os.makedirs(folder)
+def get_file_set(folder):
+  file_list = [entry for entry in os.listdir(folder)
+               if os.path.isfile(os.path.join(folder, entry))]
+  return set(file_list)
+
+
+def prepare_root_folder():
+  if os.path.exists('old_output'):
+    print 'Remove folder [old_output]'
+    shutil.rmtree('old_output')
+  if os.path.exists('output'):
+    print 'Rename folder [output] to [old_output]'
+    os.rename('output', 'old_output')
+  print 'Create folder [output]'
+  os.makedirs('output')
 
 
 def save_pw(folder, auth):
@@ -81,9 +88,30 @@ def save_pw(folder, auth):
       pw_file.write(line + '\n')
 
 
+def compare(folder):
+  old_folder = 'old_' + folder
+  if not os.path.exists(old_folder):
+    print 'New folder (does not exist in folder [old_output])'
+    return
+  old_files = get_file_set(old_folder)
+  new_files = get_file_set(folder)
+  for file_name in old_files - new_files:
+    print 'File [%s] no longer exists' % file_name
+  for file_name in new_files - old_files:
+    print 'New file [%s]' % file_name
+  for file_name in new_files & old_files:
+    if not filecmp.cmp(os.path.join(old_folder, file_name),
+                       os.path.join(folder, file_name)):
+      print 'Differences found in file [%s]' % file_name
+
+
 def main():  # pylint: disable=too-many-locals
+  prepare_root_folder()
   for folder, urls, auth in FOLDER_URL:
-    prepare_folder(folder)
+    folder = os.path.join(*folder)
+    print '=== %s ===' % folder
+    folder = os.path.join('output', folder)
+    os.makedirs(folder)
     if auth is not None:
       save_pw(folder, auth)
     url_set = set()
@@ -99,7 +127,7 @@ def main():  # pylint: disable=too-many-locals
         homepage_name += str(ind + 1)
       homepage_name += '.html'
       file_name_set.add(homepage_name)
-      file_path = folder + '/' + homepage_name
+      file_path = os.path.join(folder, homepage_name)
       download(file_path, url, auth)
       total_file_size += os.stat(file_path).st_size
       with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
@@ -123,7 +151,7 @@ def main():  # pylint: disable=too-many-locals
             url_set.add(download_url)
             # print ' ' + file_name
             file_name_set.add(file_name)
-            file_path = folder + '/' + file_name
+            file_path = os.path.join(folder, file_name)
             download(file_path, download_url, auth)
             total_file_size += os.stat(file_path).st_size
             total += 1
@@ -131,6 +159,7 @@ def main():  # pylint: disable=too-many-locals
             print 'UNEXPECTED SUFFIX', file_name, download_url
       print '%d file(s) from %s' % (total, url)
     print 'total %s' % readable_file_size(total_file_size)
+    compare(folder)
 
 
 if __name__ == '__main__':
