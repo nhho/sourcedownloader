@@ -74,7 +74,7 @@ def get_file_set(folder):
 def prepare_root_folder():
   if os.path.exists('old_output'):
     print 'Remove folder [old_output]'
-    shutil.rmtree('old_output')
+    shutil.rmtree(u'old_output')
   if os.path.exists('output'):
     print 'Rename folder [output] to [old_output]'
     os.rename('output', 'old_output')
