@@ -91,7 +91,7 @@ def save_pw(folder, auth):
 def compare(folder):
   old_folder = 'old_' + folder
   if not os.path.exists(old_folder):
-    print 'New folder (does not exist in folder [old_output])'
+    print 'New folder [%s] (does not exist in folder [old_output])' % folder
     return
   old_files = get_file_set(old_folder)
   new_files = get_file_set(folder)
@@ -157,7 +157,7 @@ def main():  # pylint: disable=too-many-locals
             total += 1
           elif suffix not in SUFFIX_IGNORE:
             print 'UNEXPECTED SUFFIX', file_name, download_url
-      print '%d file(s) from %s' % (total, url)
+      print '%d %s from %s' % (total, 'file' if total == 1 else 'files', url)
     print 'total %s' % readable_file_size(total_file_size)
     compare(folder)
 
