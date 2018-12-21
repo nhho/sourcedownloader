@@ -3,6 +3,7 @@ import os
 import shutil
 
 from bs4 import BeautifulSoup, SoupStrainer
+from requests.exceptions import SSLError
 import requests
 
 
@@ -22,11 +23,18 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 
 
 def download(file_path, url, auth):
-  with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
-    req.raise_for_status()
-    req.raw.decode_content = True
-    with open(file_path, 'wb') as local_file:
-      shutil.copyfileobj(req.raw, local_file)
+  try:
+    with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
+      req.raise_for_status()
+      req.raw.decode_content = True
+      with open(file_path, 'wb') as local_file:
+        shutil.copyfileobj(req.raw, local_file)
+  except SSLError:
+    if url.startswith('https'):
+      url = 'http' + url[5:]
+      download(file_path, url, auth)
+    else:
+      raise
 
 
 def readable_file_size(file_size, suffix='B'):
