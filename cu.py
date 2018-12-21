@@ -23,6 +23,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 
 
 def download(file_path, url, auth):
+  print url[url.rfind('/') + 1:].ljust(78)[:78] + '\r',
   try:
     with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
       req.raise_for_status()
