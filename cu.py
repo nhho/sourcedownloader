@@ -30,14 +30,14 @@ def download(file_path, url, auth):
       req.raw.decode_content = True
       with open(file_path, 'wb') as local_file:
         shutil.copyfileobj(req.raw, local_file)
+    print '\r' + ' ' * 78 + '\r',
   except SSLError:
+    print '\r' + ' ' * 78 + '\r',
     if url.startswith('https'):
       url = 'http' + url[5:]
       download(file_path, url, auth)
     else:
       raise
-  finally:
-    print '\r' + ' ' * 78 + '\r',
 
 
 def readable_file_size(file_size, suffix='B'):
