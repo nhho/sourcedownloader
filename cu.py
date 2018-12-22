@@ -23,8 +23,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 
 
 def download(file_path, url, auth):
-  print (url[url.rfind('/') + 1:].encode('ascii', 'replace').ljust(78)[:78] +
-         '\r'),
+  print url[url.rfind('/') + 1:].encode('ascii', 'replace')[:78],
   try:
     with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
       req.raise_for_status()
@@ -37,6 +36,8 @@ def download(file_path, url, auth):
       download(file_path, url, auth)
     else:
       raise
+  finally:
+    print '\r' + ' ' * 78 + '\r',
 
 
 def readable_file_size(file_size, suffix='B'):
