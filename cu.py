@@ -71,6 +71,8 @@ def get_url_and_suffix(tag, base_url, pure_url):
 
 def get_file_name(url, file_name_set):
   file_name = url[url.rfind('/') + 1:]
+  if '?' in file_name:
+    file_name = file_name[:file_name.find('?')]
   while file_name in file_name_set:
     print 'REPEATED', file_name, url
     dot = file_name.rfind('.')
