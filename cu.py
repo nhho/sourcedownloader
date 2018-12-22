@@ -14,7 +14,7 @@ FOLDER_URL = [  # (folder, [links], (id, pw))
 ]
 SUFFIX = set(['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'pdf', 'zip', 'rar',
               'gz', 'm', 'java', 'scala', 'txt', 'sql', 'asm', 'tex'])
-SUFFIX_IGNORE = set(['com', 'hk', 'htm', 'html', 'asp', 'php'])
+SUFFIX_IGNORE = set(['com', 'hk', 'htm', 'html', 'asp', 'php', 'org'])
 WHITELIST = set([])
 BLACKLIST = set([])
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
