@@ -161,34 +161,29 @@ def main():  # pylint: disable=too-many-locals
       file_path = os.path.join(folder, homepage_name)
       download(file_path, url, auth)
       total_file_size += os.stat(file_path).st_size
-      with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
-        req.raise_for_status()
-        req.raw.decode_content = True
-        with open(file_path, 'wb') as homepage_file:
-          shutil.copyfileobj(req.raw, homepage_file)
-      req = requests.get(url, auth=auth, headers=HEADERS)
-      req.raise_for_status()
-      for tag in BeautifulSoup(req.text, 'html.parser',
-                               parse_only=SoupStrainer('a')):
-        if tag.has_attr('href'):
-          url_and_suffix = get_url_and_suffix(tag, base_url, pure_url)
-          if url_and_suffix is None:
-            continue
-          download_url, suffix = url_and_suffix
-          if download_url in BLACKLIST or download_url in url_set:
-            continue
-          file_name = get_file_name(download_url, file_name_set)
-          if suffix in SUFFIX or download_url in WHITELIST:
-            url_set.add(download_url)
-            # print ' ' + file_name
-            file_name_set.add(file_name)
-            file_path = os.path.join(folder, file_name)
-            if download(file_path, download_url, auth):
-              total_file_size += os.stat(file_path).st_size
-              total += 1
-          elif suffix not in SUFFIX_IGNORE:
-            print 'UNEXPECTED SUFFIX', file_name, download_url
-      print '%d %s from %s' % (total, 'file' if total == 1 else 'files', url)
+      with open(file_path, 'r') as homepage_file:
+        html = homepage_file.read()
+        for tag in BeautifulSoup(html, 'html.parser',
+                                 parse_only=SoupStrainer('a')):
+          if tag.has_attr('href'):
+            url_and_suffix = get_url_and_suffix(tag, base_url, pure_url)
+            if url_and_suffix is None:
+              continue
+            download_url, suffix = url_and_suffix
+            if download_url in BLACKLIST or download_url in url_set:
+              continue
+            file_name = get_file_name(download_url, file_name_set)
+            if suffix in SUFFIX or download_url in WHITELIST:
+              url_set.add(download_url)
+              # print ' ' + file_name
+              file_name_set.add(file_name)
+              file_path = os.path.join(folder, file_name)
+              if download(file_path, download_url, auth):
+                total_file_size += os.stat(file_path).st_size
+                total += 1
+            elif suffix not in SUFFIX_IGNORE:
+              print 'UNEXPECTED SUFFIX', file_name, download_url
+        print '%d %s from %s' % (total, 'file' if total == 1 else 'files', url)
     print 'total %s' % readable_file_size(total_file_size)
     compare(folder)
 
