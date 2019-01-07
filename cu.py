@@ -2,7 +2,6 @@ from contextlib import closing
 import filecmp
 import os
 import shutil
-import traceback
 import urllib2
 
 from bs4 import BeautifulSoup, SoupStrainer
@@ -25,30 +24,36 @@ BLACKLIST = set([])
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                          'AppleWebKit/537.36 (KHTML, like Gecko) '
                          'Chrome/65.0.3325.181 Safari/537.36'}
+RETRY_CNT = 10
+TIMEOUT = 10  # 10 sec
 
 
 def download(file_path, url, auth):
-  print url[url.rfind('/') + 1:].encode('ascii', 'replace')[:78],
-  try:
-    if url.startswith('ftp'):
-      with closing(urllib2.urlopen(url)) as conn:
-        with open(file_path, 'wb') as local_file:
-          shutil.copyfileobj(conn, local_file)
-    else:
-      with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
-        req.raise_for_status()
-        req.raw.decode_content = True
-        with open(file_path, 'wb') as local_file:
-          shutil.copyfileobj(req.raw, local_file)
-    print '\r' + ' ' * 78 + '\r',
-    return True
-  except RequestException as err:
-    print '\r' + ' ' * 78 + '\r',
-    if isinstance(err, SSLError) and url.startswith('https'):
-      url = 'http' + url[5:]
-      return download(file_path, url, auth)
-    print traceback.format_exc()
-  return False
+  for i in range(RETRY_CNT):
+    print url[url.rfind('/') + 1:].encode('ascii', 'replace')[:78],
+    try:
+      if url.startswith('ftp'):
+        with closing(urllib2.urlopen(url)) as conn:
+          with open(file_path, 'wb') as local_file:
+            shutil.copyfileobj(conn, local_file)
+      else:
+        with requests.get(url, auth=auth, stream=True, headers=HEADERS,
+                          timeout=TIMEOUT) as req:
+          req.raise_for_status()
+          req.raw.decode_content = True
+          with open(file_path, 'wb') as local_file:
+            shutil.copyfileobj(req.raw, local_file)
+      print '\r' + ' ' * 78 + '\r',
+      return True
+    except RequestException as err:
+      print '\r' + ' ' * 78 + '\r',
+      if i == 0 and isinstance(err, SSLError) and url.startswith('https'):
+        url = 'http' + url[5:]
+        return download(file_path, url, auth)
+      if i == RETRY_CNT - 1:
+        print err
+        return False
+      # print 'retry %d' % (i + 1)
 
 
 def readable_file_size(file_size, suffix='B'):
