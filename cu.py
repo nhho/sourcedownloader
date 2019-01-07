@@ -1,6 +1,8 @@
+from contextlib import closing
 import filecmp
 import os
 import shutil
+import urllib2
 
 from bs4 import BeautifulSoup, SoupStrainer
 from requests.exceptions import SSLError
@@ -25,11 +27,16 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 def download(file_path, url, auth):
   print url[url.rfind('/') + 1:].encode('ascii', 'replace')[:78],
   try:
-    with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
-      req.raise_for_status()
-      req.raw.decode_content = True
-      with open(file_path, 'wb') as local_file:
-        shutil.copyfileobj(req.raw, local_file)
+    if url.startswith('ftp'):
+      with closing(urllib2.urlopen(url)) as conn:
+        with open(file_path, 'wb') as local_file:
+          shutil.copyfileobj(conn, local_file)
+    else:
+      with requests.get(url, auth=auth, stream=True, headers=HEADERS) as req:
+        req.raise_for_status()
+        req.raw.decode_content = True
+        with open(file_path, 'wb') as local_file:
+          shutil.copyfileobj(req.raw, local_file)
     print '\r' + ' ' * 78 + '\r',
   except SSLError:
     print '\r' + ' ' * 78 + '\r',
@@ -61,7 +68,7 @@ def get_url_and_suffix(tag, base_url, pure_url):
     suffix = suffix[:suffix.find('?')]
   if '#' in suffix:
     suffix = suffix[:suffix.find('#')]
-  if not url.startswith('http'):
+  if not url.startswith('http') and not url.startswith('ftp'):
     if url.startswith('/'):
       url = base_url + url
     else:
