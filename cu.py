@@ -2,10 +2,11 @@ from contextlib import closing
 import filecmp
 import os
 import shutil
+import traceback
 import urllib2
 
 from bs4 import BeautifulSoup, SoupStrainer
-from requests.exceptions import SSLError
+from requests.exceptions import RequestException, SSLError
 import requests
 
 
@@ -39,13 +40,14 @@ def download(file_path, url, auth):
         with open(file_path, 'wb') as local_file:
           shutil.copyfileobj(req.raw, local_file)
     print '\r' + ' ' * 78 + '\r',
-  except SSLError:
+    return True
+  except RequestException as err:
     print '\r' + ' ' * 78 + '\r',
-    if url.startswith('https'):
+    if isinstance(err, SSLError) and url.startswith('https'):
       url = 'http' + url[5:]
-      download(file_path, url, auth)
-    else:
-      raise
+      return download(file_path, url, auth)
+    print traceback.format_exc()
+  return False
 
 
 def readable_file_size(file_size, suffix='B'):
@@ -130,7 +132,7 @@ def compare(folder):
 
 def main():  # pylint: disable=too-many-locals
   prepare_root_folder()
-  for folder, urls, auth in FOLDER_URL:
+  for folder, urls, auth in FOLDER_URL:   # noqa # pylint: disable=too-many-nested-blocks
     folder = os.path.join(*folder)
     print '=== %s ===' % folder
     folder = os.path.join('output', folder)
@@ -175,9 +177,9 @@ def main():  # pylint: disable=too-many-locals
             # print ' ' + file_name
             file_name_set.add(file_name)
             file_path = os.path.join(folder, file_name)
-            download(file_path, download_url, auth)
-            total_file_size += os.stat(file_path).st_size
-            total += 1
+            if download(file_path, download_url, auth):
+              total_file_size += os.stat(file_path).st_size
+              total += 1
           elif suffix not in SUFFIX_IGNORE:
             print 'UNEXPECTED SUFFIX', file_name, download_url
       print '%d %s from %s' % (total, 'file' if total == 1 else 'files', url)
