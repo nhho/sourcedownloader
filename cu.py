@@ -30,7 +30,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                          'AppleWebKit/537.36 (KHTML, like Gecko) '
                          'Chrome/65.0.3325.181 Safari/537.36'}
 RETRY_CNT = 10
-TIMEOUT = 30  # 30 sec
+TIMEOUT = 60  # 60 sec
 PIAZZA_MAIN_URL = 'https://piazza.com'
 PIAZZA_EMAIL = ''
 PIAZZA_PASSWORD = ''
