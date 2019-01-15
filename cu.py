@@ -1,17 +1,13 @@
 from contextlib import closing
 import filecmp
+import json
 import os
 import shutil
-import time
 import urllib2
 
 from bs4 import BeautifulSoup, SoupStrainer
 from requests.exceptions import RequestException, SSLError
 import requests
-from selenium.webdriver.chrome.webdriver import WebDriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 
 FOLDER_URL = [  # (folder, [links], (id, pw))
@@ -32,11 +28,11 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 RETRY_CNT = 10
 TIMEOUT = 60  # 60 sec
 PIAZZA_MAIN_URL = 'https://piazza.com'
+PIAZZA_LOGIN_URL = 'https://piazza.com/class'
+PIAZZA_URL_PATTERN = 'https://piazza.com/class_profile/get_resource/%s/%s'
 PIAZZA_EMAIL = ''
 PIAZZA_PASSWORD = ''
 PIAZZA_RESOURCE_PREFIX = 'https://piazza.com/class_profile/get_resource/'
-# PIAZZA_S3_RESOURCE_PREFIX = 'https://piazza-resources.s3.amazonaws.com/'
-PIAZZA_REDIRECT_WAIT = 3  # 3 sec
 
 
 def readable_file_size(file_size, suffix='B'):
@@ -73,54 +69,33 @@ def get_url_and_suffix(url, pure_url, base_url):
   return (url, suffix)
 
 
-class MyDriver(WebDriver):
+def get_urls_from_html(file_path):
+  with open(file_path, 'r') as homepage_file:
+    html = homepage_file.read()
+  for tag in BeautifulSoup(html, 'html.parser', parse_only=SoupStrainer('a')):
+    if tag.has_attr('href'):
+      yield tag['href']
 
-  def __init__(self):
-    super(MyDriver, self).__init__()
 
-  def get_element(self, xpath):
-    condition = EC.presence_of_element_located((By.XPATH, xpath))
-    WebDriverWait(self, 1000).until(condition)
-    element = self.find_element_by_xpath(xpath)
-    condition = EC.visibility_of(element)
-    WebDriverWait(self, 1000).until(condition)
-    return element
-
-  def login(self):
-    self.get(PIAZZA_MAIN_URL)
-    self.get_element('//*[@id="login_button"]').click()
-    self.get_element('//*[@id="email_field"]').send_keys(PIAZZA_EMAIL)
-    self.get_element('//*[@id="password_field"]').send_keys(PIAZZA_PASSWORD)
-    self.get_element('//*[@id="modal_login_button"]').click()
-    self.get_element('//*[@id="top_bar"]/div[4]/ul[1]/li[4]/a')
-
-  def get_resources(self, url):
-    self.get(url)
-    self.get_element('//*[@id="tab_course_information"]')
-    return self.find_elements_by_class_name('resource_title')
-
-  def save_page(self, file_path):
-    html = self.page_source
-    html = html.encode('utf8', 'replace')
-    with open(file_path, 'w') as homepage_file:
-      homepage_file.write(html)
-
-  def get_resource_url(self, resource):
-    url = resource.get_attribute('href')
-    if not url.startswith(PIAZZA_RESOURCE_PREFIX):
-      return None
-    resource.click()
-    time.sleep(PIAZZA_REDIRECT_WAIT)
-    self.switch_to_window(self.window_handles[1])
-    url = self.current_url
-    # while not url or url.startswith(PIAZZA_RESOURCE_PREFIX):
-    #   self.refresh()
-    #   url = self.current_url
-    # if not url.startswith(PIAZZA_S3_RESOURCE_PREFIX):
-    #   url = None
-    self.close()
-    self.switch_to_window(self.window_handles[0])
-    return url
+def get_piazza_urls_from_html(file_path, session):
+  with open(file_path, 'r') as homepage_file:
+    for line in homepage_file:
+      if 'this.network' in line:
+        line = line[line.index('{'):]
+        line = line[:line.rindex('}') + 1]
+        course_data = json.loads(line)
+        course_id = course_data['id']
+        sections = course_data['config']['resource_sections']
+        for section in sections:
+          resources = section.get('ordering', [])
+          for resource_id in resources:
+            resource_url = PIAZZA_URL_PATTERN % (course_id, resource_id)
+            with session.get(resource_url, headers=HEADERS,
+                             allow_redirects=False,
+                             timeout=TIMEOUT) as req:
+              if req.status_code == 302:
+                yield req.headers['Location']
+        break
 
 
 class Course(object):
@@ -142,7 +117,7 @@ class Course(object):
           pw_file.write(line + '\n')
     self.total_file_size = 0
 
-  def download(self, file_path, url):
+  def download(self, file_path, url, session=None):
     for i in range(RETRY_CNT):
       print url[url.rfind('/') + 1:].encode('ascii', 'replace')[:78],
       try:
@@ -151,8 +126,10 @@ class Course(object):
             with open(file_path, 'wb') as local_file:
               shutil.copyfileobj(conn, local_file)
         else:
-          with requests.get(url, auth=self.auth, stream=True, headers=HEADERS,
-                            timeout=TIMEOUT) as req:
+          if session is None:
+            session = requests
+          with session.get(url, auth=self.auth, stream=True, headers=HEADERS,
+                           timeout=TIMEOUT) as req:
             req.raise_for_status()
             req.raw.decode_content = True
             with open(file_path, 'wb') as local_file:
@@ -212,25 +189,28 @@ class Course(object):
       self.file_name_set.add(homepage_name)
       file_path = os.path.join(self.folder, homepage_name)
       if url.startswith(PIAZZA_MAIN_URL):
-        with MyDriver() as driver:
-          driver.login()
-          resources = driver.get_resources(url)
-          driver.save_page(file_path)
-          self.total_file_size += os.stat(file_path).st_size
-          for resource in resources:
-            resource_url = driver.get_resource_url(resource)
-            if resource_url:
-              if self.handle_url(resource_url):
-                total += 1
+        session = requests.Session()
+        with session.get(PIAZZA_MAIN_URL, headers=HEADERS,
+                         timeout=TIMEOUT) as req:
+          req.raise_for_status()
+        login_data = {
+            'from': '/signup',
+            'email': PIAZZA_EMAIL,
+            'password': PIAZZA_PASSWORD,
+            'remember': 'on'
+        }
+        with session.post(PIAZZA_LOGIN_URL, headers=HEADERS, data=login_data,
+                          timeout=TIMEOUT) as req:
+          req.raise_for_status()
+        self.download(file_path, url, session)
+        for resource_url in get_piazza_urls_from_html(file_path, session):
+          if self.handle_url(resource_url):
+            total += 1
       else:
         self.download(file_path, url)
-        with open(file_path, 'r') as homepage_file:
-          html = homepage_file.read()
-        for tag in BeautifulSoup(html, 'html.parser',
-                                 parse_only=SoupStrainer('a')):
-          if tag.has_attr('href'):
-            if self.handle_url(tag['href'], pure_url, base_url):
-              total += 1
+        for resource_url in get_urls_from_html(file_path):
+          if self.handle_url(resource_url, pure_url, base_url):
+            total += 1
       print '%d %s from %s' % (total, 'file' if total == 1 else 'files', url)
     print 'total %s' % readable_file_size(self.total_file_size)
 
