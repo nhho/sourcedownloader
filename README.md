@@ -2,6 +2,11 @@
 
 A script for downloading resources from course webpages
 
+# Environment
+`Python 2.7` with the following packages
+- `beautifulsoup4`
+- `requests`
+
 # Features
 1. This script will download the resource files from the specified urls
     - They will be identified by `<a>` HTML tag (excpet Piazza, see below)
